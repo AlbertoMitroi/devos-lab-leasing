@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_Assessment" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)">
+  <bpmn:collaboration id="Collaboration_Assessment">
+    <bpmn:participant id="Participant_Assessment" name="Risk assessment" processRef="Assessment" />
+  </bpmn:collaboration>
+  <bpmn:process id="Assessment" name="Risk assessment" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Assessment">
+      <bpmn:lane id="Lane_System" name="System">
+        <bpmn:flowNodeRef>Start_ApplicationApproved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>RequestCreditCheck</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Risk" name="Risk">
+        <bpmn:flowNodeRef>AssessRisk</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Risk</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Assessed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Unacceptable</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_ApplicationApproved" name="Application approved" />
+    <bpmn:serviceTask id="RequestCreditCheck" name="Request credit check" />
+    <bpmn:userTask id="AssessRisk" name="Assess risk" />
+    <bpmn:exclusiveGateway id="Gateway_Risk" name="Acceptable?" default="Flow_Unacceptable" />
+    <bpmn:endEvent id="End_Assessed" name="Risk assessed" />
+    <bpmn:endEvent id="End_Unacceptable" name="Risk rejected" />
+    <bpmn:sequenceFlow id="Flow_Started" sourceRef="Start_ApplicationApproved" targetRef="RequestCreditCheck" />
+    <bpmn:sequenceFlow id="Flow_CreditRequested" sourceRef="RequestCreditCheck" targetRef="AssessRisk" />
+    <bpmn:sequenceFlow id="Flow_Assessed" sourceRef="AssessRisk" targetRef="Gateway_Risk" />
+    <bpmn:sequenceFlow id="Flow_Acceptable" name="Acceptable" sourceRef="Gateway_Risk" targetRef="End_Assessed">
+      <bpmn:conditionExpression>Acceptable</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Unacceptable" name="Unacceptable" sourceRef="Gateway_Risk" targetRef="End_Unacceptable" />
+  </bpmn:process>
+</bpmn:definitions>

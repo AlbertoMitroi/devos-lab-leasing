@@ -1,0 +1,13 @@
+{
+  "processId": "Assessment",
+  "displayName": "Risk assessment",
+  "startedBy": [ "ApplicationApproved" ],
+  "statuses": {
+    "End_Assessed": "RiskAssessed",
+    "End_Unacceptable": "RiskRejected"
+  },
+  "actions": {},
+  "participants": {
+    "Risk": "RiskTeam"
+  }
+}

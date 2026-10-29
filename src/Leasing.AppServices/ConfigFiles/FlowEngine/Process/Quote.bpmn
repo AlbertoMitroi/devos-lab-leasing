@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_Quote" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)">
+  <bpmn:collaboration id="Collaboration_Quote">
+    <bpmn:participant id="Participant_Quote" name="Lease quote" processRef="Quote" />
+  </bpmn:collaboration>
+  <bpmn:process id="Quote" name="Lease quote" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Quote">
+      <bpmn:lane id="Lane_System" name="System">
+        <bpmn:flowNodeRef>Start_RiskAssessed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>PriceQuote</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Sales" name="Sales">
+        <bpmn:flowNodeRef>AcceptQuote</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Accepted</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Accepted</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Declined</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_RiskAssessed" name="Risk assessed" />
+    <bpmn:serviceTask id="PriceQuote" name="Price quote" />
+    <bpmn:userTask id="AcceptQuote" name="Accept quote" />
+    <bpmn:exclusiveGateway id="Gateway_Accepted" name="Accepted?" default="Flow_Declined" />
+    <bpmn:endEvent id="End_Accepted" name="Quote accepted" />
+    <bpmn:endEvent id="End_Declined" name="Quote declined" />
+    <bpmn:sequenceFlow id="Flow_Started" sourceRef="Start_RiskAssessed" targetRef="PriceQuote" />
+    <bpmn:sequenceFlow id="Flow_Priced" sourceRef="PriceQuote" targetRef="AcceptQuote" />
+    <bpmn:sequenceFlow id="Flow_Answered" sourceRef="AcceptQuote" targetRef="Gateway_Accepted" />
+    <bpmn:sequenceFlow id="Flow_Accepted" name="Accepted" sourceRef="Gateway_Accepted" targetRef="End_Accepted">
+      <bpmn:conditionExpression>Accepted</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Declined" name="Declined" sourceRef="Gateway_Accepted" targetRef="End_Declined" />
+  </bpmn:process>
+</bpmn:definitions>

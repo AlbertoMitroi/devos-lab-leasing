@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_Lease" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)">
+  <bpmn:collaboration id="Collaboration_Lease">
+    <bpmn:participant id="Participant_Lease" name="Lease contract" processRef="Lease" />
+  </bpmn:collaboration>
+  <bpmn:process id="Lease" name="Lease contract" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Lease">
+      <bpmn:lane id="Lane_System" name="System">
+        <bpmn:flowNodeRef>Start_QuoteAccepted</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>PrepareContract</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ActivateLease</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Active</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Operations" name="Operations">
+        <bpmn:flowNodeRef>SignContract</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_QuoteAccepted" name="Quote accepted" />
+    <bpmn:serviceTask id="PrepareContract" name="Prepare contract" />
+    <bpmn:userTask id="SignContract" name="Sign contract" />
+    <bpmn:serviceTask id="ActivateLease" name="Activate lease" />
+    <bpmn:endEvent id="End_Active" name="Lease active" />
+    <bpmn:sequenceFlow id="Flow_Started" sourceRef="Start_QuoteAccepted" targetRef="PrepareContract" />
+    <bpmn:sequenceFlow id="Flow_Prepared" sourceRef="PrepareContract" targetRef="SignContract" />
+    <bpmn:sequenceFlow id="Flow_Signed" sourceRef="SignContract" targetRef="ActivateLease" />
+    <bpmn:sequenceFlow id="Flow_Activated" sourceRef="ActivateLease" targetRef="End_Active" />
+  </bpmn:process>
+</bpmn:definitions>

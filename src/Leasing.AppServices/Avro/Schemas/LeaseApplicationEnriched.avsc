@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "LeaseApplicationEnriched",
+  "namespace": "Lab.Intake.Contracts",
+  "fields": [
+    { "name": "ApplicationId", "type": "string" },
+    { "name": "Sector", "type": "string" },
+    { "name": "YearsTrading", "type": "int" }
+  ]
+}

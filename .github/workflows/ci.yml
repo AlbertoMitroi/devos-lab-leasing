@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore from GitHub Packages, build and test in Docker
+        env:
+          NUGET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: docker build --target test --secret id=nuget_token,env=NUGET_TOKEN .
+      - name: Build the runtime image
+        env:
+          NUGET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: docker build --target runtime --secret id=nuget_token,env=NUGET_TOKEN -t lab-leasing:ci .
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Format and validate
+        run: |
+          docker run --rm -v "$PWD/terraform:/tf" -w /tf hashicorp/terraform:1.9.8 fmt -check -recursive
+          docker run --rm -v "$PWD/terraform:/tf" -w /tf hashicorp/terraform:1.9.8 init -backend=false -input=false
+          docker run --rm -v "$PWD/terraform:/tf" -w /tf hashicorp/terraform:1.9.8 validate
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose.yml
+        env:
+          POSTGRES_PASSWORD: ci
+          RABBITMQ_PASSWORD: ci
+          LOCALDEV_SIGNING_KEY: ci
+          NUGET_TOKEN: ci
+        run: docker compose config -q

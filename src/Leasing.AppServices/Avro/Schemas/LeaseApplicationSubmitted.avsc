@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "LeaseApplicationSubmitted",
+  "namespace": "Lab.Intake.Contracts",
+  "fields": [
+    { "name": "ApplicationId", "type": "string" },
+    { "name": "ApplicantName", "type": "string" },
+    { "name": "CompanyNumber", "type": "string" },
+    { "name": "AssetType", "type": "string" },
+    { "name": "AssetValue", "type": "double" },
+    { "name": "TermMonths", "type": "int" },
+    { "name": "SubmittedAtUnixMs", "type": "long" }
+  ]
+}

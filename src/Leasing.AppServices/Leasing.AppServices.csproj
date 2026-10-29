@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Lab.Core.Workflow.EventFlow" />
+    <PackageReference Include="Lab.Core.Transform.Bpmn" />
+    <PackageReference Include="Lab.Core.MessageHubs" />
+    <PackageReference Include="Apache.Avro" />
+    <PackageReference Include="Confluent.SchemaRegistry.Serdes.Avro" />
+    <PackageReference Include="Elastic.Clients.Elasticsearch" />
+    <PackageReference Include="Marten" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="MassTransit.Azure.ServiceBus.Core" />
+    <PackageReference Include="MassTransit.Kafka" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <PackageReference Include="MediatR" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Leasing.Pricing\Leasing.Pricing.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ConfigFiles\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Avro\Schemas\*.avsc" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

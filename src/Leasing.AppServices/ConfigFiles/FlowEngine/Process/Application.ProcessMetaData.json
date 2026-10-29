@@ -1,0 +1,16 @@
+{
+  "processId": "Application",
+  "displayName": "Lease application",
+  "startedBy": [ "LeaseApplicationReceived" ],
+  "statuses": {
+    "End_Approved": "ApplicationApproved",
+    "End_Declined": "ApplicationDeclined",
+    "End_Rejected": "ApplicationRejected"
+  },
+  "actions": {
+    "Withdraw": { "displayName": "Withdraw application", "availableDuring": [ "ReviewApplication" ] }
+  },
+  "participants": {
+    "Underwriting": "UnderwritingTeam"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "processId": "Lease",
+  "displayName": "Lease contract",
+  "startedBy": [ "QuoteAccepted" ],
+  "statuses": {
+    "End_Active": "LeaseActive"
+  },
+  "actions": {},
+  "participants": {
+    "Operations": "OperationsTeam"
+  }
+}

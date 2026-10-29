@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Pinned on purpose to the older client: this tool only reads quotes and has not been moved to 1.1.0. -->
+    <PackageReference Include="Pricing.Client" VersionOverride="1.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+</Project>

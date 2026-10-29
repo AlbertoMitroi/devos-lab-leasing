@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_Application" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)">
+  <bpmn:collaboration id="Collaboration_Application">
+    <bpmn:participant id="Participant_Application" name="Lease application" processRef="Application" />
+  </bpmn:collaboration>
+  <bpmn:process id="Application" name="Lease application" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Application">
+      <bpmn:lane id="Lane_System" name="System">
+        <bpmn:flowNodeRef>Start_ApplicationReceived</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ValidateApplication</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Valid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Rejected</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Underwriting" name="Underwriting">
+        <bpmn:flowNodeRef>ReviewApplication</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Review</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Approved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Declined</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_ApplicationReceived" name="Application received" />
+    <bpmn:serviceTask id="ValidateApplication" name="Validate application" />
+    <bpmn:exclusiveGateway id="Gateway_Valid" name="Valid?" default="Flow_Invalid" />
+    <bpmn:userTask id="ReviewApplication" name="Review application" />
+    <bpmn:exclusiveGateway id="Gateway_Review" name="Decision" default="Flow_Declined" />
+    <bpmn:endEvent id="End_Approved" name="Application approved" />
+    <bpmn:endEvent id="End_Declined" name="Application declined" />
+    <bpmn:endEvent id="End_Rejected" name="Application rejected" />
+    <bpmn:sequenceFlow id="Flow_Received" sourceRef="Start_ApplicationReceived" targetRef="ValidateApplication" />
+    <bpmn:sequenceFlow id="Flow_Validated" sourceRef="ValidateApplication" targetRef="Gateway_Valid" />
+    <bpmn:sequenceFlow id="Flow_Valid" name="Valid" sourceRef="Gateway_Valid" targetRef="ReviewApplication">
+      <bpmn:conditionExpression>Valid</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Invalid" name="Invalid" sourceRef="Gateway_Valid" targetRef="End_Rejected" />
+    <bpmn:sequenceFlow id="Flow_Reviewed" sourceRef="ReviewApplication" targetRef="Gateway_Review" />
+    <bpmn:sequenceFlow id="Flow_Approved" name="Approved" sourceRef="Gateway_Review" targetRef="End_Approved">
+      <bpmn:conditionExpression>Approved</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Declined" name="Declined" sourceRef="Gateway_Review" targetRef="End_Declined" />
+  </bpmn:process>
+</bpmn:definitions>

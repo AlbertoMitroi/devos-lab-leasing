@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "LeaseContractActivated",
+  "namespace": "Lab.Leasing.Contracts",
+  "fields": [
+    { "name": "ContractNumber", "type": "string" },
+    { "name": "LeaseFlowId", "type": "string" },
+    { "name": "ApplicationId", "type": "string" },
+    { "name": "CompanyNumber", "type": "string" },
+    { "name": "MonthlyPayment", "type": "double" },
+    { "name": "TermMonths", "type": "int" },
+    { "name": "ActivatedAtUnixMs", "type": "long" }
+  ]
+}

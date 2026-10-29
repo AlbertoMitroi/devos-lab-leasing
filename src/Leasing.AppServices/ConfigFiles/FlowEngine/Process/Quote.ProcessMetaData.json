@@ -1,0 +1,15 @@
+{
+  "processId": "Quote",
+  "displayName": "Lease quote",
+  "startedBy": [ "RiskAssessed" ],
+  "statuses": {
+    "End_Accepted": "QuoteAccepted",
+    "End_Declined": "QuoteDeclined"
+  },
+  "actions": {
+    "Recalculate": { "displayName": "Recalculate with another term", "availableDuring": [ "AcceptQuote" ] }
+  },
+  "participants": {
+    "Sales": "SalesTeam"
+  }
+}
