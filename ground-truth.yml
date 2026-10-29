@@ -1,0 +1,536 @@
+# Ground truth for lab-leasing, written from its source only (no README, no engine output).
+# Each item: question, expected answer, file:line evidence. Any later change is logged with reason and evidence.
+# Cross-repository targets name lab-pricing at 1d4dba2dacd19022f72afbd93b2e652401828e07 (v1.1.0),
+# lab-core at 8acd81646b1bdb11f9416fbc2ba38c66811fd172 and lab-intake at b371e9df68d8e72265b453768280e19042dd803d.
+repository: lab-leasing
+sourceCommit: 3571aa117e858d7924d909af1c972b7764b442f2
+items:
+  # References and packages
+  - id: leasing-project-references
+    area: references
+    question: Which project references form the main chain?
+    expected: Leasing.AppHost -> Leasing.Host -> Leasing.AppServices -> Leasing.Pricing.
+    evidence:
+      - src/Leasing.AppHost/Leasing.AppHost.csproj:16
+      - src/Leasing.Host/Leasing.Host.csproj:9
+      - src/Leasing.AppServices/Leasing.AppServices.csproj:17
+
+  - id: leasing-lab-packages
+    area: packages
+    question: Which lab packages are consumed, at which version, and by which project?
+    expected:
+      - "Lab.Core.Workflow.EventFlow 1.0.0, Lab.Core.Transform.Bpmn 1.0.0, Lab.Core.MessageHubs 1.0.0: Leasing.AppServices"
+      - "Lab.Core.Clients.Pricing 1.0.0: Leasing.Pricing"
+      - "Pricing.Client 1.1.0: Leasing.Pricing (central version)"
+      - "Pricing.Client 1.0.0: tools/Leasing.QuoteBackfill (VersionOverride, older than the producing repository's 1.1.0)"
+    evidence:
+      - Directory.Packages.props:7
+      - Directory.Packages.props:8
+      - Directory.Packages.props:9
+      - Directory.Packages.props:10
+      - Directory.Packages.props:11
+      - src/Leasing.AppServices/Leasing.AppServices.csproj:3
+      - src/Leasing.AppServices/Leasing.AppServices.csproj:4
+      - src/Leasing.AppServices/Leasing.AppServices.csproj:5
+      - src/Leasing.Pricing/Leasing.Pricing.csproj:3
+      - src/Leasing.Pricing/Leasing.Pricing.csproj:4
+      - tools/Leasing.QuoteBackfill/Leasing.QuoteBackfill.csproj:7
+
+  - id: leasing-package-feed
+    area: packages
+    question: From which feed are the lab packages restored, and how are credentials supplied?
+    expected: Source "github" (https://nuget.pkg.github.com/AlbertoMitroi/index.json) through packageSourceMapping; credentials come from the environment variable NuGetPackageSourceCredentials_github and are not stored in nuget.config.
+    evidence:
+      - nuget.config:4
+      - nuget.config:11
+      - nuget.config:14
+
+  - id: leasing-third-party-packages
+    area: packages
+    question: Which third-party framework packages does Leasing.AppServices use, at which version?
+    expected: MassTransit 8.5.12 (with MassTransit.RabbitMQ, MassTransit.Azure.ServiceBus.Core, MassTransit.Kafka 8.5.12), MediatR 12.5.0, Marten 8.38.2, Elastic.Clients.Elasticsearch 8.19.27.
+    evidence:
+      - Directory.Packages.props:16
+      - Directory.Packages.props:17
+      - Directory.Packages.props:18
+      - Directory.Packages.props:22
+      - src/Leasing.AppServices/Leasing.AppServices.csproj:9
+      - src/Leasing.AppServices/Leasing.AppServices.csproj:14
+
+  # HTTP endpoints and authorization
+  - id: leasing-endpoints
+    area: http
+    question: Which /v1 endpoints does Leasing.Host expose, with which policy?
+    expected:
+      - "GET v1/applications (DEFAULT_READ)"
+      - "GET v1/applications/{flowId:guid} (DEFAULT_READ)"
+      - "POST v1/applications/{flowId:guid}/review (DEFAULT_WRITE)"
+      - "POST v1/applications/{flowId:guid}/actions/withdraw (DEFAULT_WRITE)"
+      - "GET v1/assessments (DEFAULT_READ)"
+      - "GET v1/assessments/{flowId:guid} (DEFAULT_READ)"
+      - "POST v1/assessments/{flowId:guid}/assess (DEFAULT_WRITE)"
+      - "GET v1/quotes (DEFAULT_READ)"
+      - "GET v1/quotes/{flowId:guid} (DEFAULT_READ)"
+      - "POST v1/quotes/{flowId:guid}/accept (DEFAULT_WRITE)"
+      - "POST v1/quotes/{flowId:guid}/recalculate (DEFAULT_WRITE)"
+      - "GET v1/leases (DEFAULT_READ)"
+      - "GET v1/leases/{flowId:guid} (DEFAULT_READ)"
+      - "GET v1/leases/{flowId:guid}/document (DEFAULT_READ)"
+      - "POST v1/leases/{flowId:guid}/sign (DEFAULT_WRITE)"
+      - "GET v1/admin/portfolio (ADMIN)"
+    endpointCount: 16
+    evidence:
+      - src/Leasing.Host/Controllers/V1/ApplicationsController.cs:14
+      - src/Leasing.Host/Controllers/V1/ApplicationsController.cs:15
+      - src/Leasing.Host/Controllers/V1/ApplicationsController.cs:29
+      - src/Leasing.Host/Controllers/V1/AssessmentsController.cs:14
+      - src/Leasing.Host/Controllers/V1/QuotesController.cs:17
+      - src/Leasing.Host/Controllers/V1/LeasesController.cs:15
+      - src/Leasing.Host/Controllers/V1/AdminController.cs:10
+      - src/Leasing.Host/Controllers/V1/AdminController.cs:11
+
+  - id: leasing-policies
+    area: authorization
+    question: How are the policies defined and how are tokens validated?
+    expected: DEFAULT_READ requires role Leasing.Read, Leasing.Write or Leasing.Admin; DEFAULT_WRITE requires Leasing.Write or Leasing.Admin; ADMIN requires Leasing.Admin. Tokens are Entra ID bearer tokens (AddMicrosoftIdentityWebApi, section AzureAd), plus a LocalDev JWT bearer scheme when Authentication:LocalDev:SigningKey is set. Hub tokens are read from the access_token query value.
+    evidence:
+      - src/Leasing.Host/Authorization/Policies.cs:5
+      - src/Leasing.Host/Authorization/Policies.cs:12
+      - src/Leasing.Host/Authorization/AuthenticationExtensions.cs:20
+      - src/Leasing.Host/Authorization/AuthenticationExtensions.cs:23
+      - src/Leasing.Host/Authorization/AuthenticationExtensions.cs:26
+      - src/Leasing.Host/Authorization/AuthenticationExtensions.cs:52
+      - src/Leasing.Host/Authorization/AuthenticationExtensions.cs:53
+      - src/Leasing.Host/Authorization/AuthenticationExtensions.cs:54
+      - src/Leasing.Host/Authorization/AuthenticationExtensions.cs:63
+
+  # MediatR
+  - id: leasing-mediatr
+    area: inprocess
+    question: Which MediatR request does each endpoint send, and which handler receives it?
+    expected:
+      - "Search endpoints -> SearchFlowsQuery -> SearchFlowsQueryHandler"
+      - "Get endpoints -> GetFlowQuery -> GetFlowQueryHandler"
+      - "applications review -> ReviewApplicationCommand -> UserTaskCommandHandlers"
+      - "applications withdraw, quotes recalculate -> ExecuteFlowActionCommand -> ExecuteFlowActionCommandHandler"
+      - "assessments assess -> AssessRiskCommand -> UserTaskCommandHandlers"
+      - "quotes accept -> AcceptQuoteCommand -> UserTaskCommandHandlers"
+      - "leases sign -> SignContractCommand -> UserTaskCommandHandlers"
+      - "leases document -> GetLeaseDocumentQuery -> PortfolioQueryHandlers"
+      - "admin portfolio -> GetPortfolioSummaryQuery -> PortfolioQueryHandlers"
+    evidence:
+      - src/Leasing.Host/Controllers/V1/ApplicationsController.cs:22
+      - src/Leasing.Host/Controllers/V1/ApplicationsController.cs:26
+      - src/Leasing.Host/Controllers/V1/ApplicationsController.cs:31
+      - src/Leasing.Host/Controllers/V1/ApplicationsController.cs:36
+      - src/Leasing.Host/Controllers/V1/AssessmentsController.cs:31
+      - src/Leasing.Host/Controllers/V1/QuotesController.cs:34
+      - src/Leasing.Host/Controllers/V1/QuotesController.cs:40
+      - src/Leasing.Host/Controllers/V1/LeasesController.cs:31
+      - src/Leasing.Host/Controllers/V1/LeasesController.cs:36
+      - src/Leasing.Host/Controllers/V1/AdminController.cs:16
+      - src/Leasing.AppServices/Flows/Queries/FlowQueries.cs:10
+      - src/Leasing.AppServices/Flows/Queries/FlowQueries.cs:26
+      - src/Leasing.AppServices/Flows/Commands/UserTaskCommands.cs:14
+      - src/Leasing.AppServices/Flows/Commands/FlowCommands.cs:12
+      - src/Leasing.AppServices/Flows/Commands/FlowCommands.cs:18
+      - src/Leasing.AppServices/Flows/Commands/FlowCommands.cs:24
+      - src/Leasing.AppServices/Flows/Queries/PortfolioQueries.cs:12
+      - src/Leasing.AppServices/ServicesExtensions.cs:30
+
+  # Workflow
+  - id: leasing-processes
+    area: workflow
+    question: Which BPMN processes exist, what starts each, and which statuses do their end events set?
+    expected:
+      - "Application: started by LeaseApplicationReceived; end statuses ApplicationApproved, ApplicationDeclined, ApplicationRejected; action Withdraw during ReviewApplication"
+      - "Assessment: started by ApplicationApproved; end statuses RiskAssessed, RiskRejected"
+      - "Quote: started by RiskAssessed; end statuses QuoteAccepted, QuoteDeclined; action Recalculate during AcceptQuote"
+      - "Lease: started by QuoteAccepted; end status LeaseActive"
+    evidence:
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Application.bpmn:6
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Application.ProcessMetaData.json:4
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Application.ProcessMetaData.json:11
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Assessment.bpmn:6
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Assessment.ProcessMetaData.json:4
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Quote.bpmn:6
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Quote.ProcessMetaData.json:4
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Quote.ProcessMetaData.json:10
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Lease.bpmn:6
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Lease.ProcessMetaData.json:4
+
+  - id: leasing-process-tasks
+    area: workflow
+    question: Which tasks does each process have, and which work team owns each user task?
+    expected:
+      - "Application: ValidateApplication (service), ReviewApplication (user, Underwriting lane, UnderwritingTeam)"
+      - "Assessment: RequestCreditCheck (service), AssessRisk (user, Risk lane, RiskTeam)"
+      - "Quote: PriceQuote (service), AcceptQuote (user, Sales lane, SalesTeam)"
+      - "Lease: PrepareContract (service), SignContract (user, Operations lane, OperationsTeam), ActivateLease (service)"
+    evidence:
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Application.bpmn:22
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Application.bpmn:24
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Application.ProcessMetaData.json:14
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Assessment.bpmn:20
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Assessment.bpmn:21
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Assessment.ProcessMetaData.json:11
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Quote.bpmn:20
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Quote.bpmn:21
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Quote.ProcessMetaData.json:13
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Lease.bpmn:19
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Lease.bpmn:20
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Lease.bpmn:21
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Lease.ProcessMetaData.json:10
+
+  - id: leasing-plugins
+    area: workflow
+    question: Which plugin handles each task, action and process start, and through which interface?
+    expected:
+      - "ValidateApplication -> ValidateApplicationHandler (IHandleServiceTask)"
+      - "ReviewApplication -> ReviewApplicationHandler (IHandleUserTaskCommand<ReviewApplicationCommand>)"
+      - "Withdraw -> WithdrawActionHandler (IHandleAction)"
+      - "Application start -> ApplicationNewFlowHandler (IHandleNewFlow)"
+      - "RequestCreditCheck -> RequestCreditCheckHandler (IHandleServiceTask)"
+      - "AssessRisk -> AssessRiskHandler (IHandleUserTaskCommand<AssessRiskCommand>)"
+      - "Assessment start -> AssessmentNewFlowHandler (IHandleNewFlow)"
+      - "PriceQuote -> PriceQuoteHandler (IHandleServiceTask)"
+      - "AcceptQuote -> AcceptQuoteHandler (IHandleUserTaskCommand<AcceptQuoteCommand>)"
+      - "Recalculate -> RecalculateActionHandler (IHandleAction)"
+      - "Quote start -> QuoteNewFlowHandler (IHandleNewFlow)"
+      - "PrepareContract -> PrepareContractHandler (IHandleServiceTask)"
+      - "SignContract -> SignContractHandler (IHandleUserTaskCommand<SignContractCommand>)"
+      - "ActivateLease -> ActivateLeaseHandler (IHandleServiceTask)"
+      - "Lease start -> LeaseNewFlowHandler (IHandleNewFlow)"
+    pluginCount: 15
+    matchedBy: class name convention from Lab.Core.Workflow.EventFlow FlowPluginConventions
+    evidence:
+      - src/Leasing.AppServices/Flows/Plugins/Application/ValidateApplicationHandler.cs:6
+      - src/Leasing.AppServices/Flows/Plugins/Application/ReviewApplicationHandler.cs:6
+      - src/Leasing.AppServices/Flows/Plugins/Application/WithdrawActionHandler.cs:6
+      - src/Leasing.AppServices/Flows/Plugins/Application/ApplicationNewFlowHandler.cs:5
+      - src/Leasing.AppServices/Flows/Plugins/Assessment/RequestCreditCheckHandler.cs:6
+      - src/Leasing.AppServices/Flows/Plugins/Assessment/AssessRiskHandler.cs:6
+      - src/Leasing.AppServices/Flows/Plugins/Assessment/AssessmentNewFlowHandler.cs:5
+      - src/Leasing.AppServices/Flows/Plugins/Quote/PriceQuoteHandler.cs:7
+      - src/Leasing.AppServices/Flows/Plugins/Quote/AcceptQuoteHandler.cs:6
+      - src/Leasing.AppServices/Flows/Plugins/Quote/RecalculateActionHandler.cs:8
+      - src/Leasing.AppServices/Flows/Plugins/Quote/QuoteNewFlowHandler.cs:5
+      - src/Leasing.AppServices/Flows/Plugins/Lease/PrepareContractHandler.cs:5
+      - src/Leasing.AppServices/Flows/Plugins/Lease/SignContractHandler.cs:6
+      - src/Leasing.AppServices/Flows/Plugins/Lease/ActivateLeaseHandler.cs:9
+      - src/Leasing.AppServices/Flows/Plugins/Lease/LeaseNewFlowHandler.cs:5
+      - src/Leasing.AppServices/Flows/PluginRegistry.cs:20
+      - src/Leasing.AppServices/Flows/PluginRegistry.cs:24
+      - src/Leasing.AppServices/Flows/PluginRegistry.cs:28
+
+  - id: leasing-child-flows
+    area: workflow
+    question: How are child flows spawned, and which spawn chain exists?
+    expected: After appending, every new FlowFactRaised fact and FlowStatusChanged status is used as a trigger; processes whose StartedBy contains it start as child flows with the parent id. Chain - Application (status ApplicationApproved) -> Assessment (RiskAssessed) -> Quote (QuoteAccepted) -> Lease. The fact ApplicationWithdrawn raised by WithdrawActionHandler starts nothing (no process lists it).
+    evidence:
+      - src/Leasing.AppServices/Flows/FlowEngine.cs:133
+      - src/Leasing.AppServices/Flows/FlowEngine.cs:137
+      - src/Leasing.AppServices/Flows/ProcessCatalog.cs:28
+      - src/Leasing.AppServices/Flows/Plugins/Application/WithdrawActionHandler.cs:12
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Assessment.ProcessMetaData.json:4
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Quote.ProcessMetaData.json:4
+      - src/Leasing.AppServices/ConfigFiles/FlowEngine/Process/Lease.ProcessMetaData.json:4
+
+  # Event store and documents
+  - id: leasing-eventstore
+    area: eventstore
+    question: How are flow events written to Marten?
+    expected: MartenFlowStore.StartStream uses session.Events.StartStream<FlowAggregate> for a new flow; Append uses session.Events.Append(flowId, expectedVersion + events.Count, events). FlowEngine calls them after each step.
+    evidence:
+      - src/Leasing.AppServices/EventStore/MartenFlowStore.cs:16
+      - src/Leasing.AppServices/EventStore/MartenFlowStore.cs:23
+      - src/Leasing.AppServices/Flows/FlowEngine.cs:123
+      - src/Leasing.AppServices/Flows/FlowEngine.cs:127
+
+  - id: leasing-projections
+    area: eventstore
+    question: Which projections and documents does Marten keep, and with which lifecycle?
+    expected:
+      - "Snapshot of FlowAggregate: inline"
+      - "FlowTimelineProjection (SingleStreamProjection<FlowTimeline, Guid>): inline"
+      - "PortfolioSummaryProjection (MultiStreamProjection<PortfolioSummary, string>): async, async daemon in Solo mode"
+      - "LeaseDocument: stored document with an index on ContractNumber, written by ActivateLeaseHandler"
+      - "Schema leasing, connection string ConnectionStrings:LeasingDb"
+    evidence:
+      - src/Leasing.AppServices/EventStore/EventStoreExtensions.cs:16
+      - src/Leasing.AppServices/EventStore/EventStoreExtensions.cs:17
+      - src/Leasing.AppServices/EventStore/EventStoreExtensions.cs:30
+      - src/Leasing.AppServices/EventStore/EventStoreExtensions.cs:31
+      - src/Leasing.AppServices/EventStore/EventStoreExtensions.cs:32
+      - src/Leasing.AppServices/EventStore/EventStoreExtensions.cs:33
+      - src/Leasing.AppServices/EventStore/EventStoreExtensions.cs:36
+      - src/Leasing.AppServices/EventStore/Projections/FlowTimelineProjection.cs:16
+      - src/Leasing.AppServices/EventStore/Projections/PortfolioSummaryProjection.cs:18
+      - src/Leasing.AppServices/EventStore/MartenFlowStore.cs:27
+      - src/Leasing.AppServices/Flows/Plugins/Lease/ActivateLeaseHandler.cs:31
+
+  # Search
+  - id: leasing-search
+    area: search
+    question: Which Elasticsearch index is written and read, and how?
+    expected: Index "leasing-flows" (Elasticsearch:Indexes:Flows). ElasticsearchFlowSearch.Index writes FlowReadModel documents with IndexAsync (id = flow id); Search filters by processId.keyword and status.keyword and matches text on applicantName, contractNumber, assetType.
+    evidence:
+      - src/Leasing.AppServices/Search/ElasticsearchOptions.cs:14
+      - src/Leasing.AppServices/Search/ElasticsearchFlowSearch.cs:15
+      - src/Leasing.AppServices/Search/ElasticsearchFlowSearch.cs:24
+      - src/Leasing.AppServices/Search/ElasticsearchFlowSearch.cs:27
+      - src/Leasing.AppServices/Search/ElasticsearchFlowSearch.cs:33
+      - src/Leasing.AppServices/Search/ElasticsearchFlowSearch.cs:41
+
+  # Real time
+  - id: leasing-signalr
+    area: realtime
+    question: Which SignalR hub exists, and which methods are pushed to clients?
+    expected: LeasingHub at /hubs/leasing (DEFAULT_READ), mapped with MapHub; Azure SignalR is added when configured. FlowProjectionService sends "flowUpdated" to all clients and "taskAssigned" to the members of WorkTeams:{team}:Members, through IMessageHubUtility from Lab.Core.MessageHubs.
+    evidence:
+      - src/Leasing.Host/Hubs/LeasingHub.cs:11
+      - src/Leasing.Host/Hubs/LeasingHub.cs:14
+      - src/Leasing.Host/Program.cs:15
+      - src/Leasing.Host/Program.cs:18
+      - src/Leasing.Host/Program.cs:42
+      - src/Leasing.AppServices/Projections/FlowProjectionService.cs:24
+      - src/Leasing.AppServices/Projections/FlowProjectionService.cs:25
+      - src/Leasing.AppServices/Projections/FlowProjectionService.cs:51
+      - src/Leasing.AppServices/Projections/FlowProjectionService.cs:55
+      - src/Leasing.AppServices/Projections/FlowProjectionService.cs:58
+
+  # Messaging: bus
+  - id: leasing-bus-transport
+    area: messaging
+    question: Which bus transport is used, and how is it chosen?
+    expected: One MassTransit bus; Messaging:Transport selects RabbitMq (default; appsettings.json) or AzureServiceBus (appsettings.Dev.json).
+    transports: [rabbitmq, azure-service-bus]
+    evidence:
+      - src/Leasing.AppServices/Messaging/MessagingOptions.cs:10
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:58
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:60
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:69
+      - src/Leasing.Host/appsettings.json:27
+      - src/Leasing.Host/appsettings.Dev.json:11
+
+  - id: leasing-bus-messages
+    area: messaging
+    question: Which bus messages are sent and consumed, on which queue?
+    expected:
+      - "CreditCheckRequested: sent by BusCreditCheckGateway (RequestCreditCheckHandler) to queue credit-check-requests; consumed in the system only by CreditBureauSimulatorConsumer when Messaging:CreditBureauSimulator is true (Local, Docker), otherwise by a service outside the system"
+      - "CreditCheckResponse: consumed by CreditCheckResponseConsumer on queue leasing-credit-check-responses (sends UpdateFlowDataCommand); sent by CreditBureauSimulatorConsumer"
+      - "PendingNoticeAddedToOutbox: sent by BusNoticeOutbox (ActivateLeaseHandler) to queue notice-outbox; no consumer in the system (unresolved)"
+      - "FlowEventsAppended: sent by BusFlowChangeNotifier (FlowEngine) to queue leasing-ordered-projection-messages; consumed by FlowEventsAppendedConsumer with ConcurrentMessageLimit 1"
+    evidence:
+      - src/Leasing.AppServices/Messaging/MessagingOptions.cs:39
+      - src/Leasing.AppServices/Messaging/MessagingOptions.cs:41
+      - src/Leasing.AppServices/Messaging/MessagingOptions.cs:43
+      - src/Leasing.AppServices/Messaging/MessagingOptions.cs:45
+      - src/Leasing.AppServices/Messaging/BusAdapters.cs:13
+      - src/Leasing.AppServices/Messaging/BusAdapters.cs:22
+      - src/Leasing.AppServices/Messaging/BusAdapters.cs:31
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:86
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:92
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:100
+      - src/Leasing.AppServices/Messaging/Consumers/CreditCheckResponseConsumer.cs:9
+      - src/Leasing.AppServices/Messaging/Consumers/FlowEventsAppendedConsumer.cs:6
+      - src/Leasing.AppServices/Messaging/Simulators/CreditBureauSimulatorConsumer.cs:16
+      - src/Leasing.AppServices/Flows/Plugins/Assessment/RequestCreditCheckHandler.cs:10
+      - src/Leasing.AppServices/Flows/Plugins/Lease/ActivateLeaseHandler.cs:36
+      - src/Leasing.AppServices/Flows/FlowEngine.cs:131
+
+  - id: leasing-dev-queues
+    area: config
+    question: Which queue names does the Dev environment use?
+    expected: dev-credit-check-requests, dev-leasing-credit-check-responses, dev-notice-outbox, dev-leasing-ordered-projection-messages (terraform creates "{environment}-{queue}" for the same four names).
+    evidence:
+      - src/Leasing.Host/appsettings.Dev.json:16
+      - src/Leasing.Host/appsettings.Dev.json:19
+      - terraform/main.tf:3
+      - terraform/main.tf:69
+
+  # Messaging: Kafka
+  - id: leasing-kafka-consumers
+    area: messaging
+    question: Which Kafka topics does lab-leasing consume, with which message type and consumer?
+    expected:
+      - "lease-applications-v1 (group leasing): Lab.Intake.Contracts.LeaseApplicationSubmitted -> LeaseApplicationSubmittedConsumer -> StartFlowCommand with trigger LeaseApplicationReceived"
+      - "lease-application-enrichment-v1 (group leasing): Lab.Intake.Contracts.LeaseApplicationEnriched -> LeaseApplicationEnrichedConsumer -> UpdateFlowDataCommand"
+      - "Producer of both: lab-intake Intake.Worker"
+    transport: kafka
+    evidence:
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:116
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:119
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:123
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:126
+      - src/Leasing.AppServices/Messaging/MessagingOptions.cs:58
+      - src/Leasing.AppServices/Messaging/Kafka/LeaseApplicationSubmittedConsumer.cs:11
+      - src/Leasing.AppServices/Messaging/Kafka/LeaseApplicationSubmittedConsumer.cs:13
+      - src/Leasing.AppServices/Messaging/Kafka/LeaseApplicationSubmittedConsumer.cs:18
+      - src/Leasing.AppServices/Messaging/Kafka/LeaseApplicationEnrichedConsumer.cs:11
+      - src/Leasing.AppServices/Avro/Schemas/LeaseApplicationSubmitted.avsc:4
+      - src/Leasing.AppServices/Avro/Schemas/LeaseApplicationEnriched.avsc:4
+    targetEvidence:
+      - lab-intake:src/Intake.Worker/Publishing/KafkaExtensions.cs:28
+      - lab-intake:src/Intake.Worker/Publishing/KafkaExtensions.cs:31
+
+  - id: leasing-kafka-producer
+    area: messaging
+    question: Which Kafka topic does lab-leasing produce to, and who consumes it?
+    expected: leasing-contracts-v1 with Lab.Leasing.Contracts.LeaseContractActivated (key contract number), produced by KafkaLeaseContractPublisher from ActivateLeaseHandler. No consumer in the lab system (unresolved; the consumer may be outside the system). When Kafka:Enabled is false, DisabledLeaseContractPublisher is used.
+    transport: kafka
+    evidence:
+      - src/Leasing.AppServices/Messaging/MessagingOptions.cs:69
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:109
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:37
+      - src/Leasing.AppServices/Messaging/MessagingExtensions.cs:41
+      - src/Leasing.AppServices/Messaging/Kafka/KafkaLeaseContractPublisher.cs:8
+      - src/Leasing.AppServices/Avro/Schemas/LeaseContractActivated.avsc:4
+      - src/Leasing.AppServices/Flows/Plugins/Lease/ActivateLeaseHandler.cs:33
+
+  # Outbound HTTP through packages
+  - id: leasing-pricing-calls
+    area: http
+    question: Which Pricing API calls does Leasing.Pricing make, through which package method, and which endpoint answers?
+    expected:
+      - "QuotePricingService -> Lab.Core.Clients.Pricing IRateCardClient.GetRateCardAsync -> GET api/rate-cards/{productCode} -> lab-pricing RateCardEndpoints"
+      - "QuotePricingService -> Pricing.Client IPricingClient.CalculateQuoteAsync -> POST api/quotes -> lab-pricing QuotesController.Calculate"
+      - "QuotePricingService -> Pricing.Client IPricingClient.RecalculateQuoteAsync (since 1.1.0) -> POST api/quotes/{id}/recalculate -> lab-pricing QuotesController.Recalculate"
+      - "tools/Leasing.QuoteBackfill -> Pricing.Client 1.0.0 IPricingClient.GetQuoteAsync -> GET api/quotes/{id} -> lab-pricing QuotesController.Get"
+    evidence:
+      - src/Leasing.Pricing/QuotePricingService.cs:10
+      - src/Leasing.Pricing/QuotePricingService.cs:14
+      - src/Leasing.Pricing/QuotePricingService.cs:21
+      - tools/Leasing.QuoteBackfill/Program.cs:13
+    targetEvidence:
+      - lab-core:src/Lab.Core.Clients.Pricing/RateCardClient.cs:10
+      - lab-pricing:src/Pricing.Client/PricingClient.cs:10
+      - lab-pricing:src/Pricing.Client/PricingClient.cs:29
+      - lab-pricing:src/Pricing.Client/PricingClient.cs:17
+      - lab-pricing:src/Pricing.Api/Endpoints/RateCardEndpoints.cs:16
+      - lab-pricing:src/Pricing.Api/Controllers/QuotesController.cs:27
+      - lab-pricing:src/Pricing.Api/Controllers/QuotesController.cs:48
+      - lab-pricing:src/Pricing.Api/Controllers/QuotesController.cs:41
+
+  - id: leasing-pricing-resilience
+    area: http
+    question: Which resilience policy wraps the pricing clients?
+    expected: Both clients get a Polly 8 retry through AddResilienceHandler ("pricing-quotes", "pricing-rate-cards") with 3 attempts, exponential backoff, 200 ms base delay.
+    evidence:
+      - src/Leasing.Pricing/PricingModuleExtensions.cs:18
+      - src/Leasing.Pricing/PricingModuleExtensions.cs:19
+      - src/Leasing.Pricing/PricingModuleExtensions.cs:27
+      - src/Leasing.Pricing/PricingModuleExtensions.cs:28
+      - src/Leasing.Pricing/PricingModuleExtensions.cs:29
+
+  - id: leasing-pricing-base-address
+    area: config
+    question: Where do the pricing clients get their base address, per environment?
+    expected:
+      - "appsettings.json: Clients:Pricing:BaseAddress and Clients:RateCards:BaseAddress = http://localhost:5081/"
+      - "appsettings.Docker.json: http://pricing-api:8080/"
+      - "appsettings.Dev.json: https://lab-pricing-dev.azurewebsites.net/"
+      - "Aspire AppHost: environment Clients__Pricing__BaseAddress and Clients__RateCards__BaseAddress from the pricing-api container endpoint"
+      - "tools/Leasing.QuoteBackfill/appsettings.json: Clients:Pricing:BaseAddress = http://localhost:5081/"
+    evidence:
+      - src/Leasing.Host/appsettings.json:20
+      - src/Leasing.Host/appsettings.json:23
+      - src/Leasing.Host/appsettings.Docker.json:7
+      - src/Leasing.Host/appsettings.Dev.json:4
+      - src/Leasing.AppHost/Program.cs:20
+      - src/Leasing.AppHost/Program.cs:21
+      - tools/Leasing.QuoteBackfill/appsettings.json:4
+
+  # Configuration and infrastructure
+  - id: leasing-config-environments
+    area: config
+    question: Which environment-specific settings files exist for Leasing.Host?
+    expected: appsettings.json, appsettings.Local.json, appsettings.Docker.json, appsettings.Dev.json. No secret value is stored (passwords, signing keys and the Service Bus connection string are empty).
+    evidence:
+      - src/Leasing.Host/appsettings.json:32
+      - src/Leasing.Host/appsettings.Local.json:9
+      - src/Leasing.Host/appsettings.Docker.json:17
+      - src/Leasing.Host/appsettings.Dev.json:13
+
+  - id: leasing-terraform
+    area: infra
+    question: Which cloud resources does terraform declare?
+    expected:
+      - azurerm_resource_group.leasing
+      - azurerm_log_analytics_workspace.leasing
+      - azurerm_application_insights.leasing
+      - azurerm_key_vault.leasing
+      - azurerm_postgresql_flexible_server.leasing
+      - azurerm_postgresql_flexible_server_database.leasing
+      - azurerm_servicebus_namespace.leasing
+      - azurerm_servicebus_queue.leasing (for_each over 4 queues)
+      - azurerm_signalr_service.leasing
+      - azurerm_service_plan.leasing
+      - azurerm_linux_web_app.leasing
+      - azurerm_role_assignment.web_app_reads_secrets
+    resourceCount: 12
+    evidence:
+      - terraform/main.tf:13
+      - terraform/main.tf:18
+      - terraform/main.tf:26
+      - terraform/main.tf:34
+      - terraform/main.tf:43
+      - terraform/main.tf:55
+      - terraform/main.tf:60
+      - terraform/main.tf:67
+      - terraform/main.tf:75
+      - terraform/main.tf:88
+      - terraform/main.tf:96
+      - terraform/main.tf:124
+
+  - id: leasing-aspire
+    area: infra
+    question: Which resources does the Aspire AppHost start?
+    expected: postgres (database LeasingDb), rabbitmq, kafka, elasticsearch, pricing-api (Dockerfile of ../../../lab-pricing, stage runtime) and the project leasing-host (Leasing.Host, environment Local).
+    evidence:
+      - src/Leasing.AppHost/Program.cs:4
+      - src/Leasing.AppHost/Program.cs:5
+      - src/Leasing.AppHost/Program.cs:6
+      - src/Leasing.AppHost/Program.cs:7
+      - src/Leasing.AppHost/Program.cs:8
+      - src/Leasing.AppHost/Program.cs:10
+      - src/Leasing.AppHost/Program.cs:14
+
+  - id: leasing-compose
+    area: infra
+    question: Which services does docker-compose.yml run, and which are built from sibling repositories?
+    expected: postgres, rabbitmq, kafka, schema-registry, elasticsearch (images); pricing-api built from ../lab-pricing and intake-worker built from ../lab-intake (target runtime); leasing-host built from this repository.
+    evidence:
+      - docker-compose.yml:6
+      - docker-compose.yml:19
+      - docker-compose.yml:30
+      - docker-compose.yml:46
+      - docker-compose.yml:55
+      - docker-compose.yml:65
+      - docker-compose.yml:76
+      - docker-compose.yml:85
+
+  - id: leasing-ci
+    area: ci
+    question: What does CI run?
+    expected: Docker test and runtime builds with the job token passed as build secret nuget_token (packages read), terraform fmt/init/validate, and docker compose config.
+    evidence:
+      - .github/workflows/ci.yml:11
+      - .github/workflows/ci.yml:21
+      - .github/workflows/ci.yml:25
+      - .github/workflows/ci.yml:27
+      - .github/workflows/ci.yml:47
+
+  # Simulation
+  - id: leasing-simulates
+    area: tests
+    question: Which test double simulates the Pricing API, and what does it simulate?
+    expected: PricingApiSimulator in Leasing.Pricing.Tests starts a WireMock server for GET /api/rate-cards/EQ-STD, POST /api/quotes (first 503, then 201, to exercise the retry) and POST /api/quotes/{id}/recalculate. It is test code and must not count as a production endpoint.
+    evidence:
+      - tests/Leasing.Pricing.Tests/PricingApiSimulator.cs:12
+      - tests/Leasing.Pricing.Tests/PricingApiSimulator.cs:18
+      - tests/Leasing.Pricing.Tests/PricingApiSimulator.cs:22
+      - tests/Leasing.Pricing.Tests/PricingApiSimulator.cs:24
+      - tests/Leasing.Pricing.Tests/PricingApiSimulator.cs:27
+      - tests/Leasing.Pricing.Tests/PricingApiSimulator.cs:29
+      - tests/Leasing.Pricing.Tests/Leasing.Pricing.Tests.csproj:13
