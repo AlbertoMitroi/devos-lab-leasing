@@ -1,7 +1,7 @@
 # Ground truth for lab-leasing, written from its source only (no README, no engine output).
 # Each item: question, expected answer, file:line evidence. Any later change is logged with reason and evidence.
-# Cross-repository targets name lab-pricing at 1d4dba2dacd19022f72afbd93b2e652401828e07 (v1.1.0),
-# lab-core at 8acd81646b1bdb11f9416fbc2ba38c66811fd172 and lab-intake at b371e9df68d8e72265b453768280e19042dd803d.
+# Cross-repository targets name lab-pricing at dc681083664847e8fde28013d9c6003f291af956 (v1.1.0),
+# lab-core at bacebb1372bbb45718916abff1f34aea44579e70 and lab-intake at b371e9df68d8e72265b453768280e19042dd803d.
 repository: lab-leasing
 sourceCommit: 3571aa117e858d7924d909af1c972b7764b442f2
 items:
