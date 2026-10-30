@@ -44,3 +44,7 @@ Run the stack: `docker compose up --build` (needs `POSTGRES_PASSWORD`, `RABBITMQ
 ## Known warning
 
 `NU1904` for Marten 8.38.2 (GHSA-rfx3-98h7-v3xp, LINQ string literals). The fix is in Marten 9.13, which no longer targets .NET 8; this lab stays on .NET 8 like the system it mirrors and does not use Marten LINQ queries with string literals.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
