@@ -1,0 +1,63 @@
+# Publishes the context generation of every commit on main as an OCI artifact:
+# ghcr.io/<owner>/context-<repository>:<commit sha> plus a moving :main
+# (layout from devos-dotnet-intelligence examples/workflows/analyze-and-push-oci.yml).
+name: context
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: context-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore the NuGet cache used by the engine
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .dotnet-intelligence/nuget
+          key: dotnet-intelligence-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: dotnet-intelligence-nuget-
+
+      - name: Analyze
+        id: intelligence
+        uses: AlbertoMitroi/devos-dotnet-intelligence@v1
+        env:
+          # Lab.Core.* and Pricing.Client come from GitHub Packages (nuget.config source "github").
+          NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the generation with ORAS
+        shell: bash
+        env:
+          GENERATION: ${{ steps.intelligence.outputs.generation-path }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET: ghcr.io/${{ github.repository_owner }}/context-${{ github.event.repository.name }}
+        run: |
+          tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C "$GENERATION" -cf - . | gzip -n > generation.tar.gz
+          echo "$REGISTRY_TOKEN" | docker run --rm -i -v "$PWD:/work" -w /work \
+            ghcr.io/oras-project/oras:v1.3.6@sha256:9cfb578be975b762fd898b9d004243d8003aeb807a3e15b2ed212cdd1326c9eb \
+            push "${TARGET,,}:$GITHUB_SHA,main" -u "$REGISTRY_USER" --password-stdin \
+            --artifact-type application/vnd.devos.intelligence.generation.v1 \
+            --annotation "org.opencontainers.image.source=$GITHUB_SERVER_URL/$REPOSITORY" \
+            --annotation "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --annotation "org.opencontainers.image.ref.name=$GITHUB_REF" \
+            --annotation "io.github.albertomitroi.devos.engine=dotnet-intelligence" \
+            generation.tar.gz:application/vnd.devos.intelligence.generation.v1.tar+gzip
+
+      - name: Summary
+        env:
+          STATUS: ${{ steps.intelligence.outputs.status }}
+          COVERAGE: ${{ steps.intelligence.outputs.coverage }}
+        run: echo "Generation status $STATUS, coverage $COVERAGE" >> "$GITHUB_STEP_SUMMARY"
