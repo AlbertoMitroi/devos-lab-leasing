@@ -20,6 +20,9 @@ concurrency:
 jobs:
   analyze:
     runs-on: ubuntu-24.04
+    env:
+      # Whether the token that starts the lab system generation is configured (step "Tell devos-lab ...").
+      DISPATCH_CONFIGURED: ${{ secrets.DEVOS_LAB_DISPATCH_TOKEN != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -94,6 +97,20 @@ jobs:
             push "${TARGET,,}:$GITHUB_SHA-$ENGINE,main-$ENGINE" -u "$REGISTRY_USER" --password-stdin \
             --artifact-type application/vnd.devos.intelligence.generation.v1 --annotation-file annotations.json \
             generation.tar.gz:application/vnd.devos.intelligence.generation.v1.tar+gzip
+
+      - name: Tell devos-lab that a generation was published
+        # Starts the lab system generation (devos-lab .github/workflows/system-context.yml). Needs the secret
+        # DEVOS_LAB_DISPATCH_TOKEN, a fine-grained token with Contents read and write on devos-lab; skipped without it.
+        if: env.DISPATCH_CONFIGURED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.DEVOS_LAB_DISPATCH_TOKEN }}
+          ENGINE: dotnet
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORY: ${{ github.event.repository.name }}
+        run: |
+          jq -n --arg repository "$REPOSITORY" --arg sha "$GITHUB_SHA" --arg engine "$ENGINE" \
+            '{event_type: "context-published", client_payload: {repository: $repository, sha: $sha, engine: $engine}}' \
+            | gh api "repos/$OWNER/devos-lab/dispatches" --input -
 
       - name: Summary
         env:
