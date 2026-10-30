@@ -1,6 +1,7 @@
 # Publishes the context generation of every commit on main as an OCI artifact:
 # ghcr.io/<owner>/context-<repository>:<commit sha>-<engine> plus a moving :main-<engine>
 # (layout from devos-dotnet-intelligence examples/workflows/analyze-and-push-oci.yml).
+# Runs the engine image with the lab-core and lab-pricing generations as inputs (call.argument, contract v1.2).
 name: context
 
 on:
@@ -25,16 +26,51 @@ jobs:
       - name: Restore the NuGet cache used by the engine
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .dotnet-intelligence/nuget
+          path: ~/.cache/dotnet-intelligence/nuget
           key: dotnet-intelligence-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj', '**/Directory.Packages.props') }}
           restore-keys: dotnet-intelligence-nuget-
 
+      # Lab.Core.* and Pricing.Client come from lab-core and lab-pricing: their published generations
+      # carry the destination templates that turn constant arguments into call.argument observations.
+      # The engine verifies each input generation before reading it.
+      - name: Pull the generations of the package producers
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          for producer in lab-core lab-pricing; do
+            mkdir -p "$RUNNER_TEMP/oci/$producer" "$RUNNER_TEMP/inputs/$producer"
+            echo "$REGISTRY_TOKEN" | docker run --rm -i --user "$(id -u):$(id -g)" -v "$RUNNER_TEMP/oci/$producer:/work" -w /work \
+              ghcr.io/oras-project/oras:v1.3.6@sha256:9cfb578be975b762fd898b9d004243d8003aeb807a3e15b2ed212cdd1326c9eb \
+              pull "ghcr.io/${OWNER,,}/context-devos-$producer:main-dotnet" -u "$REGISTRY_USER" --password-stdin | tee "$RUNNER_TEMP/oci/$producer.log"
+            tar -xzf "$RUNNER_TEMP/oci/$producer/generation.tar.gz" -C "$RUNNER_TEMP/inputs/$producer"
+            echo "Input $producer: $(grep '^Digest:' "$RUNNER_TEMP/oci/$producer.log")" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      # The Action has no input for --input-generation, so the same image runs directly (USAGE, docker run).
       - name: Analyze
         id: intelligence
-        uses: AlbertoMitroi/devos-dotnet-intelligence@v1
+        shell: bash
         env:
-          # Lab.Core.* and Pricing.Client come from GitHub Packages (nuget.config source "github").
+          IMAGE: ghcr.io/albertomitroi/dotnet-intelligence:0.2.0@sha256:d9aef7878509edd79357ff165b06493acccb871987ee4d2707af1a0ae6dfdf91
+          DI_IMAGE_DIGEST: sha256:d9aef7878509edd79357ff165b06493acccb871987ee4d2707af1a0ae6dfdf91
           NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p intelligence-out ~/.cache/dotnet-intelligence/nuget
+          code=0
+          docker run --rm --user "$(id -u):$(id -g)" -e NuGetPackageSourceCredentials_github -e DI_IMAGE_DIGEST \
+            -v "$PWD:/src:ro" -v "$PWD/intelligence-out:/out" -v "$HOME/.cache/dotnet-intelligence/nuget:/cache/nuget" \
+            -v "$RUNNER_TEMP/inputs:/inputs:ro" \
+            "$IMAGE" analyze --src /src --out /out --input-generation /inputs/lab-core --input-generation /inputs/lab-pricing || code=$?
+          # Same rule as the Action's fail-on: failed (0 complete and 10 partial pass).
+          if [ "$code" != 0 ] && [ "$code" != 10 ]; then exit "$code"; fi
+          {
+            echo "generation-path=intelligence-out"
+            echo "status=$(jq -r .status intelligence-out/manifest.json)"
+            echo "coverage=$(jq -c .coverage.summary intelligence-out/manifest.json)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Push the generation with ORAS
         shell: bash
