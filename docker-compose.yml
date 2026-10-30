@@ -1,4 +1,4 @@
-# Docker environment of the lab: infrastructure, the sibling services built from ../lab-pricing and ../lab-intake, and the leasing host.
+# Docker environment of the lab: infrastructure, the sibling services built from ../devos-lab-pricing and ../devos-lab-intake, and the leasing host.
 # Secrets come from the environment: POSTGRES_PASSWORD, RABBITMQ_PASSWORD, LOCALDEV_SIGNING_KEY, NUGET_TOKEN (read:packages).
 name: lab
 
@@ -62,7 +62,7 @@ services:
 
   pricing-api:
     build:
-      context: ../lab-pricing
+      context: ../devos-lab-pricing
       target: runtime
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
@@ -73,7 +73,7 @@ services:
 
   intake-worker:
     build:
-      context: ../lab-intake
+      context: ../devos-lab-intake
       target: runtime
     environment:
       ASPNETCORE_ENVIRONMENT: Docker

@@ -1,4 +1,4 @@
-// Local orchestration: infrastructure containers, the sibling Pricing API built from ../lab-pricing, and the leasing host.
+// Local orchestration: infrastructure containers, the sibling Pricing API built from ../devos-lab-pricing, and the leasing host.
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres").WithDataVolume();
@@ -7,7 +7,7 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq").WithManagementPlugin();
 var kafka = builder.AddKafka("kafka").WithKafkaUI();
 var elasticsearch = builder.AddElasticsearch("elasticsearch");
 
-var pricingApi = builder.AddDockerfile("pricing-api", "../../../lab-pricing", stage: "runtime")
+var pricingApi = builder.AddDockerfile("pricing-api", "../../../devos-lab-pricing", stage: "runtime")
     .WithHttpEndpoint(targetPort: 8080, name: "http")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Docker");
 

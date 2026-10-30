@@ -486,7 +486,7 @@ items:
   - id: leasing-aspire
     area: infra
     question: Which resources does the Aspire AppHost start?
-    expected: postgres (database LeasingDb), rabbitmq, kafka, elasticsearch, pricing-api (Dockerfile of ../../../lab-pricing, stage runtime) and the project leasing-host (Leasing.Host, environment Local).
+    expected: postgres (database LeasingDb), rabbitmq, kafka, elasticsearch, pricing-api (Dockerfile of ../../../devos-lab-pricing, stage runtime) and the project leasing-host (Leasing.Host, environment Local).
     evidence:
       - src/Leasing.AppHost/Program.cs:4
       - src/Leasing.AppHost/Program.cs:5
@@ -499,7 +499,7 @@ items:
   - id: leasing-compose
     area: infra
     question: Which services does docker-compose.yml run, and which are built from sibling repositories?
-    expected: postgres, rabbitmq, kafka, schema-registry, elasticsearch (images); pricing-api built from ../lab-pricing and intake-worker built from ../lab-intake (target runtime); leasing-host built from this repository.
+    expected: postgres, rabbitmq, kafka, schema-registry, elasticsearch (images); pricing-api built from ../devos-lab-pricing and intake-worker built from ../devos-lab-intake (target runtime); leasing-host built from this repository.
     evidence:
       - docker-compose.yml:6
       - docker-compose.yml:19
